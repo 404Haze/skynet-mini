@@ -68,12 +68,16 @@ info "Installing core packages..."
 "$PIP" install --quiet google-adk ddgs python-dotenv rich 2>&1 | grep -v "^Requirement already" | sed 's/^/    /' || true
 ok "google-adk" && ok "ddgs (DuckDuckGo)" && ok "python-dotenv" && ok "rich (markdown)"
 
-# ── Copy agent files ──────────────────────────────────────────
+# ── Clone agent files ─────────────────────────────────────────
 step "Installing agent files..."
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-if [ "$SCRIPT_DIR" != "$AGENT_DIR" ]; then
-    info "Copying from $SCRIPT_DIR → $AGENT_DIR"
-    cp -r "$SCRIPT_DIR"/*.py "$SCRIPT_DIR"/SOUL.md "$SCRIPT_DIR"/tools "$SCRIPT_DIR"/security "$SCRIPT_DIR"/skills "$SCRIPT_DIR"/skynet.sh "$AGENT_DIR"/ 2>/dev/null || true
+REPO_URL="https://github.com/404Haze/skynet-mini.git"
+if [ ! -f "$AGENT_DIR/main.py" ]; then
+    info "Cloning from GitHub..."
+    git clone --depth 1 "$REPO_URL" "$AGENT_DIR" 2>&1 | sed 's/^/    /'
+else
+    info "Updating existing installation..."
+    cd "$AGENT_DIR"
+    git pull --ff-only 2>&1 | sed 's/^/    /' || true
 fi
 ok "Agent files in place"
 
