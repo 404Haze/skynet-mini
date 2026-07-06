@@ -1,0 +1,31 @@
+# Environment
+.env
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+.venv/
+venv/
+
+# Agent runtime
+settings.json
+*.log
+
+# Dev artifacts (not shipped)
+IMPLEMENTATION_PLAN.md
+RESEARCH_REPORT.md
+proj.md
+requirements.txt
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
