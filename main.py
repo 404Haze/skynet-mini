@@ -209,64 +209,10 @@ def handle_command(cmd: str, gate: ApprovalGate, settings: dict) -> bool:
 
     elif cmd == "/clear":
         os.system("clear" if os.name != "nt" else "cls")
-        print(BANNER)
+        print(f"\n{BANNER}")
         return True
 
     return False
-
-
-# ─── wizard ────────────────────────────────────────────────────────
-
-def run_setup_wizard():
-    print("SkyNet-Mini setup\n")
-    sandbox_mode = False
-    sandbox_path = ""
-
-    print("[1] sandboxed — restricted to one folder")
-    print("[2] unsandboxed — full system access\n")
-    while True:
-        c = input("choice (1/2): ").strip()
-        if c == "1": sandbox_mode = True; break
-        if c == "2": sandbox_mode = False; break
-
-    if sandbox_mode:
-        sandbox_path = input("\nfolder path: ").strip()
-        sandbox_path = os.path.expanduser(sandbox_path)
-        if not sandbox_path:
-            print("no path — defaulting to unsandboxed.")
-            sandbox_mode = False
-        else:
-            os.makedirs(sandbox_path, exist_ok=True)
-            agent_dir = os.path.join(sandbox_path, ".skynet-mini")
-    else:
-        agent_dir = os.path.expanduser("~/.skynet-mini")
-
-    os.environ["SKYNET_AGENT_DIR"] = agent_dir
-    os.makedirs(agent_dir, exist_ok=True)
-
-    api_key = input("gemini api key: ").strip()
-    if api_key:
-        with open(os.path.join(agent_dir, ".env"), "w") as f:
-            f.write(f'GOOGLE_API_KEY="{api_key}"\n')
-        print("key saved.")
-
-    _copy_project_files(agent_dir)
-
-    from settings import save_settings as save_s
-    save_s({"sandbox_mode": sandbox_mode, "sandbox_path": sandbox_path if sandbox_mode else "", "show_danger_warnings": True})
-
-    print(f"\ndone. run with: cd {agent_dir} && python3 main.py\n")
-
-
-def _copy_project_files(agent_dir: str):
-    src, dst = Path(__file__).parent, Path(agent_dir)
-    import shutil
-    for f in ["main.py", "agent.py", "settings.py", "SOUL.md", "logger.py"]:
-        if (src / f).exists() and not (dst / f).exists():
-            shutil.copy2(src / f, dst / f)
-    for d in ["tools", "security", "skills"]:
-        if (src / d).exists() and not (dst / d).exists():
-            shutil.copytree(src / d, dst / d)
 
 
 # ─── main ──────────────────────────────────────────────────────────
@@ -275,6 +221,7 @@ def main():
     global log
 
     if "--wizard" in sys.argv:
+        from setup_wizard import run_setup_wizard
         run_setup_wizard()
         return
 
@@ -287,11 +234,22 @@ def main():
             sys.exit(1)
 
     setup_environment()
+
+    agent_dir = os.environ["SKYNET_AGENT_DIR"]
+    os.chdir(agent_dir)
+
+    # Auto-wizard: if no .env, run first-time setup before anything else
+    env_path = Path(agent_dir) / ".env"
+    settings_path = Path(agent_dir) / "settings.json"
+    if not env_path.exists() and not settings_path.exists():
+        from setup_wizard import run_setup_wizard
+        run_setup_wizard()
+        # Re-load after wizard
+        setup_environment()
+
     check_api_key()
 
     settings = load_settings()
-    agent_dir = os.environ["SKYNET_AGENT_DIR"]
-    os.chdir(agent_dir)
 
     log = Logger(agent_dir)
     from security.approval import set_logger
@@ -310,7 +268,7 @@ def main():
     asyncio.run(session_service.create_session(
         app_name="skynet_mini", user_id=user_id, session_id=session_id))
 
-    print(BANNER)
+    print(f"\n{BANNER}")
     print(f"log: {log.path}")
 
     # Show loaded skills
@@ -343,13 +301,17 @@ def main():
                     resume_context = resume_context.strip()
                     print(f"\nResumed: {fname}")
                     if resume_context:
-                        print(f"  ({len(resume_context)} chars of context loaded)\n")
+                        print(f"[{len(resume_context)} chars of context loaded]")
             except (ValueError, IndexError):
                 pass
     if chat is None:
         chat = ChatManager(agent_dir)
     else:
         chat = ChatManager(agent_dir, resume_file=fname)
+
+    # First-time tip (only for new sessions, not resumes)
+    if not resume_context:
+        print("\nNew session created.\nTip: Use /help for available commands.")
 
     while True:
         try:
