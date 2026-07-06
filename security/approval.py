@@ -64,7 +64,7 @@ def _format_tool(tool_name: str, args: dict) -> str:
 class ApprovalGate:
     def __init__(self, show_warnings: bool = True):
         self.yolo = False
-        self.trust_search = False
+        self.trust_search = True  # yolosearch on by default
         self.show_warnings = show_warnings
 
     def enable_yolo(self) -> str:
@@ -106,18 +106,16 @@ class ApprovalGate:
                 print(f"WARNING: {warning}")
 
         print("Approve? [y/n]")
-        while True:
-            try:
-                r = input("><> ").strip().lower()
-                if r in ("y", "yes"):
-                    if _log_fn: _log_fn("  approved")
-                    return True
-                if r in ("n", "no"):
-                    if _log_fn: _log_fn("  denied")
-                    return False
-            except (EOFError, KeyboardInterrupt):
-                if _log_fn: _log_fn("  cancelled")
-                return False
+        try:
+            r = input("><> ").strip().lower()
+            if r in ("y", "yes"):
+                if _log_fn: _log_fn("  approved")
+                return True
+            if _log_fn: _log_fn("  denied")
+            return False
+        except (EOFError, KeyboardInterrupt):
+            if _log_fn: _log_fn("  cancelled")
+            return False
 
 
 approval_gate: ApprovalGate = None  # type: ignore

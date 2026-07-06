@@ -38,8 +38,8 @@ BANNER = "[SkyNet-Mini Online]"
 HELP_TEXT = """  session
     /yolo           auto-approve all actions (session only)
     /safe           return to approval mode
-    /safesearch     auto-approve web search and read
-    /yolosearch     require approval for search
+    /yolosearch     auto-approve web search and read
+    /safesearch     require approval for search
     /warnings on    enable danger warnings
     /warnings off   disable danger warnings
 
@@ -158,8 +158,8 @@ def handle_command(cmd: str, gate: ApprovalGate, settings: dict) -> bool:
 
     elif cmd == "/yolo":
         warning = gate.enable_yolo()
-        response = input(warning).strip()
-        if response == "YES":
+        response = input(warning).strip().lower()
+        if response in ("yes", "y"):
             gate.activate_yolo()
             if log: log.command("YOLO activated")
             print("[YOLO mode activated]")
@@ -185,23 +185,23 @@ def handle_command(cmd: str, gate: ApprovalGate, settings: dict) -> bool:
         print("danger warnings: off")
         return True
 
-    elif cmd == "/safesearch":
+    elif cmd == "/yolosearch":
         gate.trust_search = True
         set_setting("trust_search", True)
-        print("[Safesearch: on] web_search and web_read auto-approved")
+        print("[Yolosearch: on] web_search and web_read auto-approved")
         return True
 
-    elif cmd == "/yolosearch":
+    elif cmd == "/safesearch":
         gate.trust_search = False
         set_setting("trust_search", False)
-        print("[Safesearch: off]")
+        print("[Yolosearch: off]")
         return True
 
     elif cmd == "/settings":
         print()
         print(f"safety: {'YOLO' if gate.yolo else 'default'}")
         print(f"warnings: {'on' if gate.show_warnings else 'off'}")
-        print(f"safesearch: {'on' if gate.trust_search else 'off'}")
+        print(f"yolosearch: {'on' if gate.trust_search else 'off'}")
         if settings.get("sandbox_mode"):
             print(f"sandbox: {settings.get('sandbox_path', '?')}")
         if log: print(f"log: {log.path}")
