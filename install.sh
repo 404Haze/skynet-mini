@@ -47,15 +47,19 @@ PIP="$VENV_DIR/bin/pip"
 "$PIP" install --quiet google-adk ddgs python-dotenv rich 2>&1 | grep -v "^Requirement already" | sed 's/^/    /' || true
 ok "google-adk, ddgs, python-dotenv, rich"
 
-# ── Install agent files ───────────────────────────────────────
+# ── Get source files ─────────────────────────────────────────
 step "Installing agent files..."
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" 2>/dev/null && pwd || echo "")"
 if [ -z "$SCRIPT_DIR" ] || [ ! -f "$SCRIPT_DIR/main.py" ]; then
-    for d in "$HOME/Downloads/skynet-mini" "$(pwd)"; do
-        [ -f "$d/main.py" ] && SCRIPT_DIR="$d" && break
-    done
+    # Running from curl pipe — clone the repo
+    REPO_URL="${SKYNET_REPO:-https://github.com/404Haze/skynet-mini.git}"
+    TMP_CLONE="$(mktemp -d)"
+    info "Cloning from GitHub..."
+    git clone --depth 1 "$REPO_URL" "$TMP_CLONE" 2>&1 | sed 's/^/    /'
+    SCRIPT_DIR="$TMP_CLONE"
+else
+    TMP_CLONE=""
 fi
-[ -z "$SCRIPT_DIR" ] || [ ! -f "$SCRIPT_DIR/main.py" ] && err "Cannot find source files." && exit 1
 
 if [ "$SCRIPT_DIR" != "$AGENT_DIR" ]; then
     info "Copying from $SCRIPT_DIR → $AGENT_DIR"
@@ -66,6 +70,7 @@ if [ "$SCRIPT_DIR" != "$AGENT_DIR" ]; then
     cp -r "$SCRIPT_DIR"/skills "$AGENT_DIR"/ 2>/dev/null || true
     cp "$SCRIPT_DIR"/skynet.sh "$AGENT_DIR"/ 2>/dev/null || true
 fi
+[ -n "$TMP_CLONE" ] && rm -rf "$TMP_CLONE"
 ok "Agent files in place"
 
 # ── Global shortcut ───────────────────────────────────────────
